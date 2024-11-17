@@ -12,7 +12,7 @@ struct SettingsView: View {
         NavigationStack {
             List {
                 NavigationLink {
-                    Text("Gestionar Vendedores")
+                    SellersView()
                 } label: {
                     Label("Gestionar Vendedores", systemImage: "person.fill")
                 }

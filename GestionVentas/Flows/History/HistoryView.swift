@@ -8,13 +8,12 @@
 import SwiftUI
 
 struct Movement: Identifiable, Hashable {
-    var id: Int
-    var product: Product
-    var count: Int
-    var total: Double
-    var date: Date
-    var sellerName: String
-    var clientName: String
+    var id: String = UUID().uuidString
+    var sell: Sell
+    
+    static func == (lhs: Movement, rhs: Movement) -> Bool {
+        return lhs.id == rhs.id
+    }
 }
 
 struct HistoryView: View {
@@ -25,31 +24,36 @@ struct HistoryView: View {
             List {
                 ForEach(movements, id: \.id) { movement in
                     NavigationLink(value: movement) {
-                        VStack(alignment: .leading) {
-                            HStack {
-                                Text("$ \(movement.total.formatted())")
-                                Spacer()
-                                Text(movement.date.formatted(date: .numeric, time: .omitted))
-                                    .font(.footnote)
-                            }
-                            .fontWeight(.bold)
-                            
-                            Group {
-                                Text("\(movement.product.title) x\(movement.count)")
-                                Text("Vendedor: \(movement.sellerName)")
-                                Text("Cliente: \(movement.clientName)")
-                            }
-                            .font(.footnote)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        movementItemView(movement)
                     }
                 }
             }
             .navigationDestination(for: Movement.self) { movement in
-                Text(movement.product.title)
+                TicketView(sell: movement.sell)
             }
             .navigationTitle("Historial")
         }
+    }
+    
+    @ViewBuilder
+    func movementItemView(_ movement: Movement) -> some View {
+        VStack(alignment: .leading) {
+            HStack {
+                Text("$ \(movement.sell.total.formatted())")
+                Spacer()
+                Text(movement.sell.date.formatted(date: .numeric, time: .omitted))
+                    .font(.footnote)
+            }
+            .fontWeight(.bold)
+            
+            Group {
+//                Text("\(movement.product.title) x\(movement.count)")
+                Text("Vendedor: \(movement.sell.sellerName)")
+                Text("Cliente: \(movement.sell.clientName)")
+            }
+            .font(.footnote)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

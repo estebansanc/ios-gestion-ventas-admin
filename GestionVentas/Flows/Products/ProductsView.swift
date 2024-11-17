@@ -8,53 +8,57 @@
 import SwiftUI
 
 struct Product: Identifiable, Hashable {
-    var id: Int
+    let id: String = UUID().uuidString
     var title: String
     var subtitle: String
     var price: Double
 }
 
 struct ProductsView: View {
-    @State var total: Double = 40
     @State var products: [Product] = mockProducts
+    @State var cartViewModel = CartViewModel()
+    @State var showCart: Bool = false
+    @Namespace var namespace
     
     var body: some View {
         NavigationStack {
             List {
                 ForEach(products, id: \.id) { product in
                     NavigationLink(value: product) {
-                        VStack {
-                            Group {
-                                Text(product.title)
-                                    .fontWeight(.bold)
-                                Text(product.subtitle)
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            
-                            HStack {
-                                Spacer()
-                                Text("$ \(product.price.formatted())")
-                            }
+                        VStack(alignment: .leading) {
+                            Text(product.title)
+                                .fontWeight(.bold)
+                            Text(product.subtitle)
+                                .font(.footnote)
+                            Text("Precio: $ \(product.price.formatted())")
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
             }
             .navigationDestination(for: Product.self) { product in
-                Text(product.title)
+                ProductDetailView(product: product)
+                    .environmentObject(cartViewModel)
+            }
+            .fullScreenCover(isPresented: $showCart) {
+                CartView()
+                    .environmentObject(cartViewModel)
+                    .navigationTransition(.zoom(sourceID: "cart-button", in: namespace))
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink {
-                        Text("Carrito")
+                    Button {
+                        showCart = true
                     } label: {
                         HStack {
-                            Text("$ \(total.formatted())")
+                            Text("Carrito")
                             Image(systemName: "cart")
                         }
                         .padding()
                         .fontWeight(.bold)
+                        .matchedTransitionSource(id: "cart-button", in: namespace)
                     }
-
+                    .buttonStyle(.plain)
                 }
             }
             .navigationTitle("Comprar")
