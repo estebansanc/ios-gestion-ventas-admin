@@ -39,7 +39,7 @@ struct HistoryView: View {
     func movementItemView(_ movement: Movement) -> some View {
         VStack(alignment: .leading) {
             HStack {
-                Text("$ \(movement.sell.total.formatted())")
+                Text("\(movement.sell.total.formatted())")
                 Spacer()
                 Text(movement.sell.date.formatted(date: .numeric, time: .omitted))
                     .font(.footnote)

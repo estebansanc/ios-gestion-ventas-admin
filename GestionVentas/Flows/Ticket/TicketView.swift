@@ -23,13 +23,13 @@ struct TicketView: View {
             Section("Lineas de venta") {
                 ForEach(sell.sellLines, id: \.id) { line in
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("\(line.product.title)")
+                        Text("\(line.product.nombre)")
                         HStack(alignment: .bottom) {
-                            Text("$\(line.product.price.formatted())/U.")
+                            Text("\(line.product.precio?.formatted(.currency(code: "ARS")) ?? "--")/U.")
                             Spacer()
                             Text("x\(line.count)")
                             Spacer()
-                            Text("Subtotal $\(line.subtotal.formatted())")
+                            Text("Subtotal \(line.subtotal.formatted())")
                         }
                     }
                 }
@@ -47,12 +47,12 @@ struct TicketView: View {
                         HStack {
                             Text("Monto recibido")
                             Spacer()
-                            Text("$\(paymentDetails.cashPaymentDetails?.amount.formatted() ?? "---")")
+                            Text("\(paymentDetails.cashPaymentDetails?.amount.formatted() ?? "---")")
                         }
                         HStack {
                             Text("Vuelto")
                             Spacer()
-                            Text("$\(paymentDetails.cashPaymentDetails?.returned.formatted() ?? "---")")
+                            Text("\(paymentDetails.cashPaymentDetails?.returned.formatted() ?? "---")")
                         }
                     } else {
                         HStack {

@@ -18,25 +18,30 @@ struct SettingsView: View {
                 }
                 
                 NavigationLink {
-                    Text("Gestionar Clientes")
+                    ClientsView()
                 } label: {
                     Label("Gestionar Clientes", systemImage: "person.fill")
                 }
                 
                 NavigationLink {
-                    Text("Gestionar Gerentes")
+                    ManagersView()
                 } label: {
                     Label("Gestionar Gerentes", systemImage: "person.fill")
                 }
                 
                 NavigationLink {
-                    Text("Gestionar Productos y Servicios")
+                    List {
+                        NavigationLink("Crear producto") {
+                            AddProductView()
+                        }
+                    }
+                    .navigationTitle("Gestionar Productos")
                 } label: {
-                    Label("Gestionar Productos y Servicios", systemImage: "shippingbox")
+                    Label("Gestionar Productos", systemImage: "shippingbox")
                 }
                 
                 NavigationLink {
-                    Text("Gestionar Descuentos")
+                    DiscountsView()
                 } label: {
                     Label("Gestionar Descuentos", systemImage: "dollarsign.circle")
                 }

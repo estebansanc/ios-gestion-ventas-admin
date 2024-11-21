@@ -1,43 +1,41 @@
 //
-//  SellersView.swift
+//  ClientsView.swift
 //  GestionVentas
 //
-//  Created by Esteban Sánchez on 17/11/2024.
+//  Created by Esteban Sánchez on 21/11/2024.
 //
 
 import SwiftUI
 
-struct Seller: Identifiable, Codable {
+struct Client: Identifiable, Codable {
     let id: Int
     let nombre: String
     let apellido: String
-    let correo: String
-    let dni: Int
-    let idGerente: Int?
+    let correo: String?
+    let direccion: String?
     
     enum CodingKeys: String, CodingKey {
-        case id = "id_vendedor"
+        case id = "id_cliente"
         case nombre
         case apellido
         case correo
-        case dni
-        case idGerente = "id_gerente"
+        case direccion
     }
 }
 
-class SellersViewModel: ObservableObject {
-    @Published private(set) var sellers: [Seller] = []
+class ClientsViewModel: ObservableObject {
+    @Published private(set) var clients: [Client] = []
     @Published var errorMessage: String = ""
     @Published var isLoading: Bool = false
     
     @MainActor
-    func fetchSellers() async {
+    func fetchClients() async {
         isLoading = true
         
         do {
-            let result: [Seller] = try await HTTPManager.get(path: "/vendedores")
+            let result: [Client] = try await HTTPManager.get(path: "/clientes")
             withAnimation {
-                self.sellers = result
+                self.clients = result
             }
         } catch {
             debugPrint(error)
@@ -53,31 +51,31 @@ class SellersViewModel: ObservableObject {
     }
 }
 
-struct SellersView: View {
-    @StateObject private var viewModel = SellersViewModel()
+struct ClientsView: View {
+    @StateObject private var viewModel = ClientsViewModel()
     
     var body: some View {
         List {
-            ForEach(viewModel.sellers, id: \.id) { seller in
+            ForEach(viewModel.clients, id: \.id) { client in
                 VStack(alignment: .leading) {
                     HStack {
-                        Text(seller.nombre)
-                        Text(seller.apellido)
+                        Text(client.nombre)
+                        Text(client.apellido)
                     }
                     .fontWeight(.bold)
-                    Text(seller.correo)
-                    Text("\(seller.dni)")
+                    Text(client.correo ?? "")
+                    Text(client.direccion ?? "")
                 }
             }
         }
         .toolbar {
             NavigationLink {
                 Form {
-                    Section("Datos del vendedor") {
+                    Section("Datos del cliente") {
                         Text("Nombre")
                         Text("Apellido")
                         Text("Correo electronico")
-                        Text("DNI")
+                        Text("Dirección")
                     }
                     
                     Label("Crear", systemImage: "plus.circle")
@@ -88,7 +86,7 @@ struct SellersView: View {
                         .fontWeight(.bold)
                         .clipShape(RoundedRectangle(cornerRadius: 15))
                 }
-                .navigationTitle("Agregar vendedor")
+                .navigationTitle("Agregar cliente")
             } label: {
                 Label("Agregar", systemImage: "plus.circle")
             }
@@ -103,16 +101,16 @@ struct SellersView: View {
         )
         .onAppear {
             Task {
-                await viewModel.fetchSellers()
+                await viewModel.fetchClients()
             }
         }
         .refreshable {
-            await viewModel.fetchSellers()
+            await viewModel.fetchClients()
         }
-        .navigationTitle("Vendedores")
+        .navigationTitle("Clientes")
     }
 }
 
 #Preview {
-    SellersView()
+    ClientsView()
 }

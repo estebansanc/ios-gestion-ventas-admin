@@ -1,43 +1,41 @@
 //
-//  SellersView.swift
+//  DiscountsView.swift
 //  GestionVentas
 //
-//  Created by Esteban Sánchez on 17/11/2024.
+//  Created by Esteban Sánchez on 21/11/2024.
 //
 
 import SwiftUI
 
-struct Seller: Identifiable, Codable {
+struct Discount: Identifiable, Codable {
     let id: Int
-    let nombre: String
-    let apellido: String
-    let correo: String
-    let dni: Int
-    let idGerente: Int?
+    let descripcion: String
+    let porcentajeDescuento: String
+    let idGerente: String
+    let fechaCaducidad: String
     
     enum CodingKeys: String, CodingKey {
-        case id = "id_vendedor"
-        case nombre
-        case apellido
-        case correo
-        case dni
-        case idGerente = "id_gerente"
+        case id = "id_descuento"
+        case descripcion
+        case porcentajeDescuento
+        case idGerente
+        case fechaCaducidad
     }
 }
 
-class SellersViewModel: ObservableObject {
-    @Published private(set) var sellers: [Seller] = []
+class DiscountsViewModel: ObservableObject {
+    @Published private(set) var discounts: [Discount] = []
     @Published var errorMessage: String = ""
     @Published var isLoading: Bool = false
     
     @MainActor
-    func fetchSellers() async {
+    func fetchDiscounts() async {
         isLoading = true
         
         do {
-            let result: [Seller] = try await HTTPManager.get(path: "/vendedores")
+            let result: [Discount] = try await HTTPManager.get(path: "/descuentos")
             withAnimation {
-                self.sellers = result
+                self.discounts = result
             }
         } catch {
             debugPrint(error)
@@ -53,31 +51,29 @@ class SellersViewModel: ObservableObject {
     }
 }
 
-struct SellersView: View {
-    @StateObject private var viewModel = SellersViewModel()
+struct DiscountsView: View {
+    @StateObject private var viewModel = DiscountsViewModel()
     
     var body: some View {
         List {
-            ForEach(viewModel.sellers, id: \.id) { seller in
+            ForEach(viewModel.discounts, id: \.id) { discount in
                 VStack(alignment: .leading) {
+                    Text(discount.descripcion)
+                        .fontWeight(.bold)
                     HStack {
-                        Text(seller.nombre)
-                        Text(seller.apellido)
+                        Text(discount.porcentajeDescuento)
+                        Text(discount.fechaCaducidad)
                     }
-                    .fontWeight(.bold)
-                    Text(seller.correo)
-                    Text("\(seller.dni)")
                 }
             }
         }
         .toolbar {
             NavigationLink {
                 Form {
-                    Section("Datos del vendedor") {
-                        Text("Nombre")
-                        Text("Apellido")
-                        Text("Correo electronico")
-                        Text("DNI")
+                    Section("Datos del descuento") {
+                        Text("Descripcion")
+                        Text("Porcentaje de descuento")
+                        Text("Fecha de caducidad")
                     }
                     
                     Label("Crear", systemImage: "plus.circle")
@@ -88,7 +84,7 @@ struct SellersView: View {
                         .fontWeight(.bold)
                         .clipShape(RoundedRectangle(cornerRadius: 15))
                 }
-                .navigationTitle("Agregar vendedor")
+                .navigationTitle("Agregar descuento")
             } label: {
                 Label("Agregar", systemImage: "plus.circle")
             }
@@ -103,16 +99,16 @@ struct SellersView: View {
         )
         .onAppear {
             Task {
-                await viewModel.fetchSellers()
+                await viewModel.fetchDiscounts()
             }
         }
         .refreshable {
-            await viewModel.fetchSellers()
+            await viewModel.fetchDiscounts()
         }
-        .navigationTitle("Vendedores")
+        .navigationTitle("Descuentos")
     }
 }
 
 #Preview {
-    SellersView()
+    DiscountsView()
 }

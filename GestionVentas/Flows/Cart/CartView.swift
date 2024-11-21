@@ -13,7 +13,7 @@ struct SellLine: Identifiable, Hashable {
     let product: Product
     
     var subtotal: Double {
-        Double(count) * product.price
+        Double(count) * (product.precio ?? 0)
     }
 }
 
@@ -150,7 +150,7 @@ struct CartView: View {
     var totalView: some View {
         HStack {
             Group {
-                Text("Total: $\(viewModel.sell.total.formatted())")
+                Text("Total: \(viewModel.sell.total.formatted())")
                     .contentTransition(.numericText())
                     .font(.title2)
                     .foregroundStyle(Color.accentColor)
@@ -178,9 +178,9 @@ struct CartView: View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    Text("\(line.product.title)")
+                    Text("\(line.product.nombre)")
                 }
-                Text("$ \(line.product.price.formatted()) / Unidad")
+                Text("\(line.product.precio?.formatted(.currency(code: "ARS")) ?? "--") / Unidad")
                     .font(.footnote)
                 HStack(alignment: .bottom) {
                     Text("Cantidad:")
@@ -192,7 +192,7 @@ struct CartView: View {
                     
                     Text("Subtotal:")
                         .font(.footnote)
-                    Text("$\(line.subtotal.formatted())")
+                    Text("\(line.subtotal.formatted(.currency(code: "ARS")))")
                         .fontWeight(.bold)
                 }
             }

@@ -110,14 +110,14 @@ struct CheckoutView: View {
             TextField("Monto", text: $amount.animation())
                 .focused($isTextFieldFocused)
                 .keyboardType(.numberPad)
-            Text("Vuelto: $\(returnAmount.formatted())")
+            Text("Vuelto: \(returnAmount.formatted())")
         }
     }
     
     var totalView: some View {
         HStack {
             Group {
-                Text("Total: $\(cartViewModel.sell.total.formatted())")
+                Text("Total: \(cartViewModel.sell.total.formatted())")
                     .font(.title2)
                     .foregroundStyle(Color.accentColor)
                 Spacer()
