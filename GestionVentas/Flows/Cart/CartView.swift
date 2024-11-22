@@ -13,7 +13,7 @@ struct SellLine: Identifiable, Hashable {
     let product: Product
     
     var subtotal: Double {
-        Double(count) * (product.precio ?? 0)
+        Double(count) * (product.price)
     }
 }
 
@@ -58,6 +58,8 @@ class CartViewModel: ObservableObject {
     
     @MainActor
     func updateSellLine(for product: Product, count: Int) {
+        guard count > 0 else { return }
+        
         if let index = sell.sellLines.firstIndex(where: { $0.product.id == product.id }) {
             var line = sell.sellLines.remove(at: index)
             line.count = count
@@ -178,9 +180,9 @@ struct CartView: View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    Text("\(line.product.nombre)")
+                    Text("\(line.product.name)")
                 }
-                Text("\(line.product.precio?.formatted(.currency(code: "ARS")) ?? "--") / Unidad")
+                Text("\(line.product.price.formatted(.currency(code: "ARS"))) / Unidad")
                     .font(.footnote)
                 HStack(alignment: .bottom) {
                     Text("Cantidad:")

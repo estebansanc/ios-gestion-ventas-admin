@@ -19,9 +19,7 @@ class HTTPManager {
         body: T
     ) async throws -> U {
         // Validar URL
-        guard let url = URL(string: "\(BASE_URL)\(path)") else {
-            throw URLError(.badURL)
-        }
+        let url = try getURL(path: path)
         
         // Configurar la solicitud
         var request = URLRequest(url: url)
@@ -47,9 +45,7 @@ class HTTPManager {
         path: String
     ) async throws -> U {
         // Validar URL
-        guard let url = URL(string: "\(BASE_URL)\(path)") else {
-            throw URLError(.badURL)
-        }
+        let url = try getURL(path: path)
         
         // Configurar la solicitud
         var request = URLRequest(url: url)
@@ -68,5 +64,13 @@ class HTTPManager {
         // Decodificar la respuesta
         let decodedResponse = try JSONDecoder().decode(U.self, from: responseData)
         return decodedResponse
+    }
+    
+    static func getURL(path: String) throws -> URL {
+        guard let url = URL(string: "\(BASE_URL)\(path)") else {
+            throw URLError(.badURL)
+        }
+        print(url.absoluteString)
+        return url
     }
 }

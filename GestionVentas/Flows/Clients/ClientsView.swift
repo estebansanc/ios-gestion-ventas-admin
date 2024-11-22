@@ -9,18 +9,31 @@ import SwiftUI
 
 struct Client: Identifiable, Codable {
     let id: Int
-    let nombre: String
-    let apellido: String
-    let correo: String?
-    let direccion: String?
+    let name: String
+    let lastname: String
+    let email: String
+    let address: String
+    let dni: Int
+    let idVendedor: String
     
     enum CodingKeys: String, CodingKey {
         case id = "id_cliente"
-        case nombre
-        case apellido
-        case correo
-        case direccion
+        case name = "nombre"
+        case lastname = "apellido"
+        case email
+        case address = "direccion"
+        case dni
+        case idVendedor
     }
+}
+
+struct ClientsResponse: Codable {
+    let message: String
+    let data: [Client]
+}
+
+struct CreateClientResponse: Codable {
+    let message: String
 }
 
 class ClientsViewModel: ObservableObject {
@@ -28,17 +41,53 @@ class ClientsViewModel: ObservableObject {
     @Published var errorMessage: String = ""
     @Published var isLoading: Bool = false
     
+    @Published var name: String = ""
+    @Published var lastname: String = ""
+    @Published var email: String = ""
+    @Published var address: String = ""
+    @Published var dni: String = ""
+    @Published var creationSuccess: Bool = false
+    
     @MainActor
     func fetchClients() async {
         isLoading = true
         
         do {
-            let result: [Client] = try await HTTPManager.get(path: "/clientes")
+            let result: ClientsResponse = try await HTTPManager.get(path: "/clientes")
             withAnimation {
-                self.clients = result
+                self.clients = result.data
             }
         } catch {
             debugPrint(error)
+            showError(message: error.localizedDescription)
+        }
+        isLoading = false
+    }
+    
+    @MainActor
+    func createClient() async {
+        isLoading = true
+        
+        do {
+            let body = Client(
+                id: 0,
+                name: name,
+                lastname: lastname,
+                email: email,
+                address: address,
+                dni: Int(dni) ?? 0,
+                idVendedor: "1"
+            )
+            
+            let _: CreateClientResponse = try await HTTPManager.post(
+                path: "/clientes/crearcliente",
+                body: body
+            )
+            
+            withAnimation {
+                self.creationSuccess = true
+            }
+        } catch {
             showError(message: error.localizedDescription)
         }
         isLoading = false
@@ -59,34 +108,19 @@ struct ClientsView: View {
             ForEach(viewModel.clients, id: \.id) { client in
                 VStack(alignment: .leading) {
                     HStack {
-                        Text(client.nombre)
-                        Text(client.apellido)
+                        Text(client.name)
+                        Text(client.lastname)
                     }
                     .fontWeight(.bold)
-                    Text(client.correo ?? "")
-                    Text(client.direccion ?? "")
+                    Text(client.address)
+                    Text(client.email)
+                    Text("\(client.dni)")
                 }
             }
         }
         .toolbar {
             NavigationLink {
-                Form {
-                    Section("Datos del cliente") {
-                        Text("Nombre")
-                        Text("Apellido")
-                        Text("Correo electronico")
-                        Text("Dirección")
-                    }
-                    
-                    Label("Crear", systemImage: "plus.circle")
-                        .frame(height: 56)
-                        .frame(maxWidth: .infinity)
-                        .background(Color.accentColor)
-                        .foregroundStyle(.white)
-                        .fontWeight(.bold)
-                        .clipShape(RoundedRectangle(cornerRadius: 15))
-                }
-                .navigationTitle("Agregar cliente")
+                AddClientView()
             } label: {
                 Label("Agregar", systemImage: "plus.circle")
             }
@@ -108,6 +142,34 @@ struct ClientsView: View {
             await viewModel.fetchClients()
         }
         .navigationTitle("Clientes")
+    }
+}
+
+struct AddClientView: View {
+    @EnvironmentObject var viewModel: ClientsViewModel
+    @Environment(\.dismiss) var dismiss
+    
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Datos del cliente") {
+                    TextField("Nombre", text: $viewModel.name)
+                    TextField("Apellido", text: $viewModel.lastname)
+                    TextField("Email", text: $viewModel.email)
+                    TextField("Dirección", text: $viewModel.address)
+                    TextField("DNI", text: $viewModel.dni)
+                }
+                
+                Label("Crear", systemImage: "plus.circle")
+                    .frame(height: 56)
+                    .frame(maxWidth: .infinity)
+                    .background(Color.accentColor)
+                    .foregroundStyle(.white)
+                    .fontWeight(.bold)
+                    .clipShape(RoundedRectangle(cornerRadius: 15))
+            }
+            .navigationTitle("Agregar cliente")
+        }
     }
 }
 

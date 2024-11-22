@@ -8,12 +8,23 @@
 import SwiftUI
 
 struct CreateProductRequest: Codable {
-    let nombre: String
-    let categoria: String
-    let precio: Double
+    let name: String
+    let category: String
+    let price: Double
     let idGerente: String
-    let tiempoFinSoporte: String
-    let stock: Int
+    let commentary: String
+    
+    enum CodingKeys: String, CodingKey {
+        case name = "nombre"
+        case category = "categoria"
+        case price = "precio"
+        case idGerente = "id_gerente"
+        case commentary = "comentarios"
+    }
+}
+
+struct CreateProductResponse: Codable {
+    let message: String
 }
 
 class AddProductViewModel: ObservableObject {
@@ -23,35 +34,24 @@ class AddProductViewModel: ObservableObject {
     @Published var name: String = ""
     @Published var price: String = ""
     @Published var category: String = ""
-    @Published var supportEndTime: Date = .init()
+    @Published var commentary: String = ""
     
     @MainActor
     func createProduct() async {
         isLoading = true
-        guard let url = URL(string: "\(BASE_URL)/productos/crearproducto") else {
-            showError(message: "Invalid URL")
-            return
-        }
         
         do {
             let body = CreateProductRequest(
-                nombre: name,
-                categoria: category,
-                precio: Double(price) ?? 0,
-                idGerente: "123",
-                tiempoFinSoporte: DateFormatter().string(from: supportEndTime),
-                stock: 0
+                name: name,
+                category: category,
+                price: Double(price) ?? 0,
+                idGerente: "1",
+                commentary: ""
             )
-            var request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.httpBody = try JSONEncoder().encode(body)
-            
-            let (_, response) = try await URLSession.shared.data(for: request)
-            
-            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                throw URLError(.badServerResponse)
-            }
+            let _: CreateProductResponse = try await HTTPManager.post(
+                path: "/productos/crearproducto",
+                body: body
+            )
             
             withAnimation {
                 self.isSuccess = true
@@ -88,7 +88,7 @@ struct AddProductView: View {
                             TextField("Precio", text: $viewModel.price)
                                 .keyboardType(.asciiCapableNumberPad)
                                 .focused($isTextFieldFirstResponder)
-                            DatePicker("Finalización de soporte", selection: $viewModel.supportEndTime, displayedComponents: .date)
+                            TextField("Comentarios", text: $viewModel.commentary)
                         }
                         
                         Button {

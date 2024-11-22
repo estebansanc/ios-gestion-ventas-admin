@@ -9,14 +9,14 @@ import SwiftUI
 
 struct Manager: Identifiable, Codable {
     let id: Int
-    let nombre: String
+    let name: String
     let apellido: String
     let email: String
     let direccion: String
     
     enum CodingKeys: String, CodingKey {
         case id = "id_gerente"
-        case nombre
+        case name = "nombre"
         case apellido
         case email
         case direccion
@@ -59,7 +59,7 @@ struct ManagersView: View {
             ForEach(viewModel.managers, id: \.id) { manager in
                 VStack(alignment: .leading) {
                     HStack {
-                        Text(manager.nombre)
+                        Text(manager.name)
                         Text(manager.apellido)
                     }
                     .fontWeight(.bold)

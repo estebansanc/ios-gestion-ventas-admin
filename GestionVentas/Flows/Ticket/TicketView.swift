@@ -23,9 +23,9 @@ struct TicketView: View {
             Section("Lineas de venta") {
                 ForEach(sell.sellLines, id: \.id) { line in
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("\(line.product.nombre)")
+                        Text("\(line.product.name)")
                         HStack(alignment: .bottom) {
-                            Text("\(line.product.precio?.formatted(.currency(code: "ARS")) ?? "--")/U.")
+                            Text("\(line.product.price.formatted(.currency(code: "ARS")))/U.")
                             Spacer()
                             Text("x\(line.count)")
                             Spacer()
