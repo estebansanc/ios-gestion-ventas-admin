@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct Seller: Identifiable, Codable {
+struct Seller: Identifiable, Hashable, Codable {
     let id: Int
     let name: String
     let lastname: String
@@ -27,128 +27,68 @@ struct Seller: Identifiable, Codable {
     }
 }
 
-struct SellerResponse: Codable {
-    let message: String
-    let data: [Seller]
-}
-
-struct CreateSellerResponse: Codable {
-    let message: String
-}
-
-class SellersViewModel: ObservableObject {
-    @Published private(set) var sellers: [Seller] = []
-    @Published var errorMessage: String = ""
-    @Published var isLoading: Bool = false
-    
-    @Published var name: String = ""
-    @Published var lastname: String = ""
-    @Published var email: String = ""
-    @Published var dni: String = ""
-    @Published var address: String = ""
-    @Published var creationSuccess: Bool = false
-    
-    @MainActor
-    func fetchSellers() async {
-        isLoading = true
-        
-        do {
-            let result: SellerResponse = try await HTTPManager.get(path: "/vendedores")
-            withAnimation {
-                self.sellers = result.data
-            }
-        } catch {
-            debugPrint(error)
-            showError(message: error.localizedDescription)
-        }
-        isLoading = false
-    }
-    
-    @MainActor
-    func createSeller() async {
-        isLoading = true
-        
-        do {
-            let body = Seller(
-                id: 0,
-                name: name,
-                lastname: lastname,
-                email: email,
-                dni: Int(dni) ?? 0,
-                address: address,
-                idGerente: 1
-            )
-            
-            let _: CreateSellerResponse = try await HTTPManager.post(
-                path: "/vendedores/crearvendedor",
-                body: body
-            )
-            
-            withAnimation {
-                self.creationSuccess = true
-            }
-        } catch {
-            showError(message: error.localizedDescription)
-        }
-        isLoading = false
-    }
-    
-    @MainActor
-    private func showError(message: String) {
-        print("Error: \(message)")
-        self.errorMessage = message
-    }
-}
-
 struct SellersView: View {
     @StateObject private var viewModel = SellersViewModel()
+    @State private var addTapped: Bool = false
     
     var body: some View {
         NavigationStack {
             List {
-                NavigationLink {
-                    AddSellersView()
-                        .environmentObject(viewModel)
-                } label: {
-                    Label("Agregar", systemImage: "plus.circle")
-                }
                 ForEach(viewModel.sellers, id: \.id) { seller in
-                    VStack(alignment: .leading) {
-                        HStack {
-                            Text(seller.name)
-                            Text(seller.lastname)
+                    NavigationLink(value: seller) {
+                        VStack(alignment: .leading) {
+                            HStack {
+                                Text(seller.name)
+                                Text(seller.lastname)
+                            }
+                            .fontWeight(.bold)
+                            Text(seller.email)
+                            Text("\(seller.dni)")
+                            Text(seller.address)
                         }
-                        .fontWeight(.bold)
-                        Text(seller.email)
-                        Text("\(seller.dni)")
-                        Text(seller.address)
                     }
                 }
             }
-            .alert(
-                viewModel.errorMessage,
-                isPresented: .init(
-                    get: { !viewModel.errorMessage.isEmpty },
-                    set: { _ in viewModel.errorMessage = "" }
-                ),
-                actions: {}
-            )
-            .onAppear {
-                Task {
-                    await viewModel.fetchSellers()
+            .navigationDestination(for: Seller.self) { seller in
+                SellerDetailView(selectedSeller: seller)
+                    .environmentObject(viewModel)
+            }
+            .fullScreenCover(isPresented: $addTapped) {
+                SellerDetailView()
+                    .environmentObject(viewModel)
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Add", systemImage: "plus.circle.fill") {
+                        viewModel.set(selectedSeller: nil)
+                        addTapped = true
+                    }
                 }
+            }
+            .task {
+                await viewModel.fetchSellers()
             }
             .refreshable {
                 await viewModel.fetchSellers()
             }
             .navigationTitle("Vendedores")
+            .alert("Error", isPresented: .constant(viewModel.error != nil)) {
+                Button("Dismiss") {
+                    viewModel.error = nil
+                }
+            } message: {
+                if let error = viewModel.error {
+                    Text(error.localizedDescription)
+                }
+            }
         }
     }
 }
 
-struct AddSellersView: View {
+struct SellerDetailView: View {
     @EnvironmentObject var viewModel: SellersViewModel
     @Environment(\.dismiss) var dismiss
+    @State var selectedSeller: Seller? = nil
     
     var body: some View {
         NavigationStack {
@@ -162,7 +102,13 @@ struct AddSellersView: View {
                 }
                 
                 Button {
-                    Task { await viewModel.createSeller() }
+                    Task {
+                        if selectedSeller != nil {
+                            await viewModel.updateSeller()
+                        } else {
+                            await viewModel.createSeller()
+                        }
+                    }
                 } label: {
                     Label("Crear", systemImage: "plus.circle")
                         .frame(height: 56)
@@ -173,12 +119,31 @@ struct AddSellersView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 15))
                 }
             }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Cerrar", systemImage: "x.mark.circle") {
+                        dismiss()
+                    }
+                }
+            }
+            .navigationTitle("\(viewModel.selectedSeller == nil ? "Nuevo" : "Editar") vendedor")
+            .alert("Error", isPresented: .constant(viewModel.error != nil)) {
+                Button("Dismiss") {
+                    viewModel.error = nil
+                }
+            } message: {
+                if let error = viewModel.error {
+                    Text(error.localizedDescription)
+                }
+            }
             .onChange(of: viewModel.creationSuccess) { oldValue, newValue in
                 if newValue {
                     dismiss()
                 }
             }
-            .navigationTitle("Agregar vendedor")
+            .onAppear {
+                viewModel.set(selectedSeller: selectedSeller)
+            }
         }
     }
 }

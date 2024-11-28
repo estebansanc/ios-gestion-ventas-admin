@@ -7,14 +7,40 @@
 
 import SwiftUI
 
+class ProductDetailViewModel: BaseViewModel {
+    var productID: Int
+    
+    @Published var count: Int = 0
+    @Published var product: Product? = nil
+    
+    var subtotal: Double {
+        guard let product else { return 0 }
+        return Double(count) * product.price
+    }
+    
+    init(productID: Int) {
+        self.productID = productID
+    }
+    
+    @MainActor
+    func fetchDetail() async {
+        await callService {
+            let result: Product = try await HTTPManager.get(path: "/productos/\(productID)")
+            withAnimation {
+                self.product = result
+            }
+        }
+    }
+}
+
 struct ProductDetailView: View {
-    @EnvironmentObject private var viewModel: ProductsViewModel
+    @EnvironmentObject private var viewModel: ProductDetailViewModel
     @EnvironmentObject private var cartViewModel: CartViewModel
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         VStack(alignment: .leading) {
-            if let product = viewModel.selectedProduct {
+            if let product = viewModel.product {
                 AsyncImage(
                     url: URL(string: "https://www.paredro.com/wp-content/uploads/2016/05/Prasad-Bhat-03.gif")
                 ) { image in
@@ -74,10 +100,20 @@ struct ProductDetailView: View {
                 await viewModel.fetchDetail()
             }
         }
+        .alert("Error", isPresented: .constant(viewModel.error != nil)) {
+            Button("Dismiss") {
+                viewModel.error = nil
+            }
+        } message: {
+            if let error = viewModel.error {
+                Text(error.localizedDescription)
+            }
+        }
     }
 }
 
 #Preview {
     ProductDetailView()
-        .environmentObject(ProductsViewModel())
+        .environmentObject(ProductDetailViewModel(productID: 1))
+        .environmentObject(CartViewModel())
 }

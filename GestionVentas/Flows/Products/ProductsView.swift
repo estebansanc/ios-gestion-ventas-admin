@@ -17,7 +17,11 @@ struct ProductsView: View {
         NavigationStack {
             List {
                 ForEach(viewModel.products, id: \.id) { product in
-                    NavigationLink(value: product) {
+                    NavigationLink {
+                        ProductDetailView()
+                            .environmentObject(ProductDetailViewModel(productID: product.id))
+                            .environmentObject(cartViewModel)
+                    } label: {
                         VStack(alignment: .leading) {
                             Text(product.name)
                                 .fontWeight(.bold)
@@ -28,12 +32,6 @@ struct ProductsView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
-            }
-            .navigationDestination(for: Product.self) { product in
-                viewModel.selectedProductID = product.id
-                return ProductDetailView()
-                    .environmentObject(cartViewModel)
-                    .environmentObject(viewModel)
             }
             .fullScreenCover(isPresented: $showCart) {
                 CartView()
@@ -56,13 +54,15 @@ struct ProductsView: View {
                     .buttonStyle(.plain)
                 }
             }
-            .alert(
-                viewModel.errorMessage,
-                isPresented: .init(
-                    get: { !viewModel.errorMessage.isEmpty },
-                    set: { _ in viewModel.errorMessage = "" }
-                )
-            ) { }
+            .alert("Error", isPresented: .constant(viewModel.error != nil)) {
+                Button("Dismiss") {
+                    viewModel.error = nil
+                }
+            } message: {
+                if let error = viewModel.error {
+                    Text(error.localizedDescription)
+                }
+            }
             .onAppear {
                 Task {
                     await viewModel.fetchProducts()

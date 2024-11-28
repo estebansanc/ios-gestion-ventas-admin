@@ -28,11 +28,8 @@ struct ProductsResponse: Codable {
     let data: [Product]
 }
 
-class ProductsViewModel: ObservableObject {
+class ProductsViewModel: BaseViewModel {
     @Published private(set) var products: [Product] = []
-    @Published var errorMessage: String = ""
-    @Published var isLoading: Bool = false
-    
     @Published var count: Int = 0
     @Published var selectedProduct: Product? = nil
     var selectedProductID: Int? = nil
@@ -44,45 +41,26 @@ class ProductsViewModel: ObservableObject {
     
     @MainActor
     func fetchProducts() async {
-        isLoading = true
-        
-        do {
+        await callService {
             let result: ProductsResponse = try await HTTPManager.get(path: "/productos")
             withAnimation {
-                self.products = result.data
+                products = result.data
             }
-        } catch {
-            showError(error, message: error.localizedDescription)
         }
-        isLoading = false
     }
     
     @MainActor
     func fetchDetail() async {
         guard let productID = selectedProductID else {
-            showError(message: "Ningun producto seleccionado")
+            print("Ningun producto seleccionado")
             return
         }
         
-        isLoading = true
-        
-        do {
+        await callService {
             let result: Product = try await HTTPManager.get(path: "/productos/\(productID)")
             withAnimation {
                 self.selectedProduct = result
             }
-        } catch {
-            showError(error, message: error.localizedDescription)
         }
-        
-        isLoading = false
-    }
-    
-    @MainActor
-    private func showError(_ error: Error? = nil, message: String) {
-        if let error {
-            debugPrint(error)
-        }
-        self.errorMessage = message
     }
 }
