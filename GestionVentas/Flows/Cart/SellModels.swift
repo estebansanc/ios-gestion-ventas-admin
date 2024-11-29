@@ -61,7 +61,7 @@ class SellRequestMapper {
             idCliente: entity.idCliente,
             date: entity.date.convertDateToISO8601String(),
             idDescuento: entity.idDescuento,
-            total: entity.total,
+            total: entity.totalWithDiscount == nil ? entity.total : entity.totalWithDiscount!,
             totalCount: entity.totalCount,
             sellLines: map(entity.sellLines),
             paymentDetails: map(entity.paymentDetails)
@@ -129,6 +129,7 @@ struct Sell: Identifiable, Hashable {
     var idCliente: String
     var idDescuento: String? = nil
     var date: Date = .init()
+    var totalWithDiscount: Double? = nil
     
     var total: Double {
         sellLines.reduce(0, { $0 + $1.subtotal })

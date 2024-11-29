@@ -61,6 +61,7 @@ struct ProductsView: View {
                         .navigationTransition(.zoom(sourceID: "cart-button", in: namespace))
                 case .checkout(let sell):
                     CheckoutView(path: $path, sell: sell)
+                        .environmentObject(cartViewModel)
                 }
             }
             .alert("Error", isPresented: .constant(viewModel.error != nil)) {

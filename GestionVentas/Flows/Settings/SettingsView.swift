@@ -41,6 +41,46 @@ struct SettingsView: View {
                     Label("Gestionar Descuentos", systemImage: "dollarsign.circle")
                 }
 
+                
+                NavigationLink {
+                    List {
+                        VStack(alignment: .leading) {
+                            Text("Casacci, Luciano Esteban")
+                                .fontWeight(.bold)
+                            Text("Legajo: 52732")
+                        }
+                        VStack(alignment: .leading) {
+                            Text("Fuentes García, Franco Nicolás")
+                                .fontWeight(.bold)
+                            Text("Legajo: 52503")
+                        }
+                        VStack(alignment: .leading) {
+                            Text("Moreno Ivanoff, Jeremías")
+                                .fontWeight(.bold)
+                            Text("Legajo: 52473")
+                        }
+                        VStack(alignment: .leading) {
+                            Text("Rocha, Felipe")
+                                .fontWeight(.bold)
+                            Text("Legajo: 52655")
+                        }
+                        VStack(alignment: .leading) {
+                            Text("Sánchez, Esteban Nicolás")
+                                .fontWeight(.bold)
+                            Text("Legajo: 49894")
+                        }
+                    }
+                    .navigationTitle("Créditos")
+                } label: {
+                    Label {
+                        Text("Créditos")
+                            .fontWeight(.bold)
+                    } icon: {
+                        Image(.utnLogo)
+                            .resizable()
+                            .frame(width: 24, height: 24)
+                    }
+                }
             }
             .navigationTitle("Gestionar")
         }

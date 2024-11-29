@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct CheckoutView: View {
+    @EnvironmentObject private var cartViewModel: CartViewModel
     @StateObject var viewModel = CheckoutViewModel()
     @FocusState private var isTextFieldFocused: Bool
     @Binding var path: NavigationPath
@@ -44,9 +45,11 @@ struct CheckoutView: View {
         }
         .task {
             await viewModel.fetchClients()
+            await viewModel.fetchDiscounts()
         }
         .alert("Venta exitosa!", isPresented: $viewModel.successSell) {
             Button("Volver al inicio") {
+                cartViewModel.cleanSell()
                 path = NavigationPath()
             }
         }
@@ -114,12 +117,31 @@ struct CheckoutView: View {
     }
     
     var totalView: some View {
-        HStack {
-            Group {
-                Text("Total: \((viewModel.sell?.total ?? 0).formatted(.currency(code: "ARS")))")
+        VStack(alignment: .leading) {
+            HStack(alignment: .center, spacing: 16) {
+                Text("Total:")
                     .font(.title2)
-                    .foregroundStyle(Color.accentColor)
+                Text("\(viewModel.total.formatted(.currency(code: "ARS")))")
+                    .contentTransition(.numericText())
+                    .font(.title2)
+                    .strikethrough(
+                        viewModel.discountApplied,
+                        pattern: .solid,
+                        color: .accentColor
+                    )
+                if viewModel.discountApplied {
+                    Text("\(viewModel.updatedTotal.formatted(.currency(code: "ARS")))")
+                        .contentTransition(.numericText())
+                        .font(.footnote)
+                }
+            }
+            .fontWeight(.bold)
+            
+            HStack {
+                Text("Descuento: \(viewModel.selectedDiscount?.percentage ?? "---")")
+                
                 Spacer()
+                
                 Button("Confirmar", systemImage: "chevron.right.circle") {
                     Task {
                         await viewModel.pay()
@@ -128,8 +150,8 @@ struct CheckoutView: View {
                 .buttonStyle(.borderedProminent)
                 .font(.title3)
                 .disabled(!viewModel.isInputValid)
+                .fontWeight(.bold)
             }
-            .fontWeight(.bold)
         }
         .padding()
         .background()

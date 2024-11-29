@@ -80,4 +80,15 @@ class CartViewModel: BaseViewModel {
             }
         }
     }
+    
+    @MainActor
+    func cleanSell() {
+        self.sell = Sell(
+            sellLines: [],
+            paymentDetails: PaymentDetails.initial,
+            idVendedor: "1",
+            idCliente: "1",
+            date: .init()
+        )
+    }
 }
