@@ -7,31 +7,27 @@
 
 import SwiftUI
 
-struct Movement: Identifiable, Hashable {
-    var id: String = UUID().uuidString
-    var sell: Sell
-    
-    static func == (lhs: Movement, rhs: Movement) -> Bool {
-        return lhs.id == rhs.id
-    }
-}
-
 struct HistoryView: View {
-    @State var movements: [Movement] = mockMovements
+    @StateObject private var viewModel = HistorysViewModel()
     
     var body: some View {
         NavigationStack {
             List {
-                ForEach(movements, id: \.id) { movement in
-                    NavigationLink(value: movement) {
+                ForEach(viewModel.movements, id: \.id) { movement in
+                    NavigationLink {
+                        TicketView(movement: movement)
+                    } label: {
                         movementItemView(movement)
                     }
                 }
             }
-            .navigationDestination(for: Movement.self) { movement in
-                TicketView(sell: movement.sell)
+            .refreshable {
+                await viewModel.fetchHistorys()
             }
             .navigationTitle("Historial")
+            .task {
+                await viewModel.fetchHistorys()
+            }
         }
     }
     
@@ -39,17 +35,17 @@ struct HistoryView: View {
     func movementItemView(_ movement: Movement) -> some View {
         VStack(alignment: .leading) {
             HStack {
-                Text("\(movement.sell.total.formatted())")
+                Text(movement.total)
                 Spacer()
-                Text(movement.sell.date.formatted(date: .numeric, time: .omitted))
+                Text(movement.date)
                     .font(.footnote)
             }
             .fontWeight(.bold)
             
             Group {
-//                Text("\(movement.product.title) x\(movement.count)")
-                Text("Vendedor: \(movement.sell.sellerName)")
-                Text("Cliente: \(movement.sell.clientName)")
+                Text("\(movement.sellLines.count) productos")
+                Text("Vendedor: \(movement.sellerName)")
+                Text("Cliente: \(movement.clientName)")
             }
             .font(.footnote)
         }

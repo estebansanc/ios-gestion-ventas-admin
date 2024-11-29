@@ -8,27 +8,28 @@
 import SwiftUI
 
 struct AnalysisView: View {
-    @State private var fromDate: Date = .init()
-    @State private var toDate: Date = .init()
-    @State private var softwareType: String = ""
+    @StateObject private var viewModel = AnalysisViewModel()
     
     var body: some View {
         NavigationStack {
             VStack {
                 VStack(alignment: .leading) {
-                    DatePicker("Desde", selection: $fromDate, displayedComponents: .date)
-                    DatePicker("Hasta", selection: $toDate, displayedComponents: .date)
+                    DatePicker("Desde", selection: $viewModel.fromDate.animation(), displayedComponents: .date)
                     Divider()
-                    HStack {
-                        Text("Producto")
-                        Spacer()
-                        Picker("Producto", systemImage: "chevron.down", selection: $softwareType) {
-                            ForEach(1..<5) { index in
-                                Text("Software \(index)")
-                                    .tag("Software \(index)")
+                    DatePicker("Hasta", selection: $viewModel.toDate.animation(), displayedComponents: .date)
+                    if !viewModel.sellers.isEmpty {
+                        Divider()
+                        HStack {
+                            Text("Vendedor")
+                            Picker("Vendedor", selection: $viewModel.sellerID.animation()) {
+                                Text("Todos")
+                                    .tag(-1)
+                                ForEach(viewModel.sellers, id: \.id) {
+                                    Text($0.name)
+                                        .tag($0.id)
+                                }
                             }
                         }
-                        .pickerStyle(.menu)
                     }
                 }
                 .padding()
@@ -37,12 +38,49 @@ struct AnalysisView: View {
                 
                 Spacer()
                 
-                RoundedRectangle(cornerRadius: 25)
+                AsyncImage(
+                    url: URL(string: viewModel.imageUrlString)
+                ) { transaction in
+                    if let image = transaction.image {
+                        image.resizable()
+                            .scaledToFit()
+                    } else if transaction.error != nil {
+                        RoundedRectangle(cornerRadius: 15)
+                            .foregroundStyle(.gray.opacity(0.5))
+                    } else {
+                        RoundedRectangle(cornerRadius: 15)
+                            .foregroundStyle(.gray.opacity(0.5))
+                            .overlay {
+                                ProgressView()
+                                    .tint(.white)
+                            }
+                    }
+                }
+                .contentTransition(.identity)
                 
                 Spacer()
             }
             .padding()
             .navigationTitle("Análisis")
+            .task {
+                await viewModel.fetchSellers()
+                await viewModel.fetchImage()
+            }
+            .onChange(of: viewModel.fromDate) { oldValue, newValue in
+                Task {
+                    await viewModel.fetchImage()
+                }
+            }
+            .onChange(of: viewModel.toDate) { oldValue, newValue in
+                Task {
+                    await viewModel.fetchImage()
+                }
+            }
+            .onChange(of: viewModel.sellerID) { oldValue, newValue in
+                Task {
+                    await viewModel.fetchImage()
+                }
+            }
         }
     }
 }

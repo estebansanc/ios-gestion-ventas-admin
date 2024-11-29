@@ -7,21 +7,24 @@
 
 import SwiftUI
 
+enum Route: Hashable {
+    case productDetail(productID: Int)
+    case cart
+    case checkout(sell: Sell)
+}
+
 struct ProductsView: View {
     @StateObject private var cartViewModel = CartViewModel()
     @StateObject private var viewModel = ProductsViewModel()
     @State private var showCart: Bool = false
+    @State private var path = NavigationPath()
     @Namespace private var namespace
     
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             List {
                 ForEach(viewModel.products, id: \.id) { product in
-                    NavigationLink {
-                        ProductDetailView()
-                            .environmentObject(ProductDetailViewModel(productID: product.id))
-                            .environmentObject(cartViewModel)
-                    } label: {
+                    NavigationLink(value: Route.productDetail(productID: product.id)) {
                         VStack(alignment: .leading) {
                             Text(product.name)
                                 .fontWeight(.bold)
@@ -33,25 +36,31 @@ struct ProductsView: View {
                     }
                 }
             }
-            .fullScreenCover(isPresented: $showCart) {
-                CartView()
-                    .environmentObject(cartViewModel)
-                    .navigationTransition(.zoom(sourceID: "cart-button", in: namespace))
-            }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showCart = true
-                    } label: {
+                    NavigationLink(value: Route.cart) {
                         HStack {
-                            Text("Carrito")
+                            Text("Carrito (\(cartViewModel.sell.totalCount))")
                             Image(systemName: "cart")
                         }
                         .padding()
                         .fontWeight(.bold)
                         .matchedTransitionSource(id: "cart-button", in: namespace)
                     }
-                    .buttonStyle(.plain)
+                }
+            }
+            .navigationTitle("Comprar")
+            .navigationDestination(for: Route.self) { route in
+                switch route {
+                case .productDetail(let productID):
+                    ProductDetailView(productID: productID)
+                        .environmentObject(cartViewModel)
+                case .cart:
+                    CartView(path: $path)
+                        .environmentObject(cartViewModel)
+                        .navigationTransition(.zoom(sourceID: "cart-button", in: namespace))
+                case .checkout(let sell):
+                    CheckoutView(path: $path, sell: sell)
                 }
             }
             .alert("Error", isPresented: .constant(viewModel.error != nil)) {
@@ -63,15 +72,12 @@ struct ProductsView: View {
                     Text(error.localizedDescription)
                 }
             }
-            .onAppear {
-                Task {
-                    await viewModel.fetchProducts()
-                }
+            .task {
+                await viewModel.fetchProducts()
             }
             .refreshable {
                 await viewModel.fetchProducts()
             }
-            .navigationTitle("Comprar")
         }
     }
 }

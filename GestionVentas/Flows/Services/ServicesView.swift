@@ -1,5 +1,5 @@
 //
-//  ClientsView.swift
+//  ServicesView.swift
 //  GestionVentas
 //
 //  Created by Esteban Sánchez on 17/11/2024.
@@ -7,42 +7,43 @@
 
 import SwiftUI
 
-struct Client: Identifiable, Hashable, Codable {
+struct Service: Identifiable, Hashable, Codable {
     let id: Int
     let name: String
-    let lastname: String
-    let email: String
-    let dni: Int
-    let sellerID: Int
+    let price: Double
+    let category: String
+    let comments: String
+    let managerID: Int
     
     enum CodingKeys: String, CodingKey {
-        case id = "id_cliente"
+        case id = "id_producto"
         case name = "nombre"
-        case lastname = "apellido"
-        case email
-        case dni
-        case sellerID = "id_vendedor"
+        case price = "precio"
+        case category = "categoria"
+        case comments = "comentarios"
+        case managerID = "id_gerente"
     }
 }
 
-struct ClientsView: View {
-    @StateObject private var viewModel = ClientsViewModel()
+struct ServicesView: View {
+    @StateObject private var viewModel = ServicesViewModel()
     
     var body: some View {
         NavigationStack {
             List {
-                ForEach(viewModel.clients, id: \.id) { seller in
+                ForEach(viewModel.products, id: \.id) { item in
                     NavigationLink {
-                        ClientDetailView(selectedClient: seller)
+                        ServiceDetailView(selectedService: item)
                     } label: {
                         VStack(alignment: .leading) {
                             HStack {
-                                Text(seller.name)
-                                Text(seller.lastname)
+                                Text(item.name)
+                                Text(item.price.formatted(.currency(code: "ARS")))
                             }
                             .fontWeight(.bold)
-                            Text(seller.email)
-                            Text("\(seller.dni)")
+                            Text(item.category)
+                            Text(item.comments)
+                            Text(item.managerID.formatted())
                         }
                     }
                 }
@@ -50,19 +51,19 @@ struct ClientsView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     NavigationLink {
-                        ClientDetailView()
+                        ServiceDetailView()
                     } label: {
                         Label("Add", systemImage: "plus.circle.fill")
                     }
                 }
             }
             .task {
-                await viewModel.fetchClients()
+                await viewModel.fetchServices()
             }
             .refreshable {
-                await viewModel.fetchClients()
+                await viewModel.fetchServices()
             }
-            .navigationTitle("Clientes")
+            .navigationTitle("Productos")
             .alert("Error", isPresented: .constant(viewModel.error != nil)) {
                 Button("Dismiss") {
                     viewModel.error = nil
@@ -77,5 +78,5 @@ struct ClientsView: View {
 }
 
 #Preview {
-    ClientsView()
+    ServicesView()
 }

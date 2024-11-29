@@ -7,66 +7,30 @@
 
 import SwiftUI
 
-enum PaymentMethods: String, CaseIterable {
-    case cash = "Efectivo"
-    case card = "Tarjeta"
-}
-
-struct CardDetails: Hashable {
-    let id: String = UUID().uuidString
-    let number: String
-    let name: String
-    let securityCode: String
-    let expirationDate: String
-}
-
-struct CashPaymentDetails: Hashable {
-    let id: String = UUID().uuidString
-    let amount: Double
-    let returned: Double
-}
-
-struct PaymentDetails: Hashable {
-    let id: String = UUID().uuidString
-    let paymentMethod: PaymentMethods
-    let cardDetails: CardDetails?
-    let cashPaymentDetails: CashPaymentDetails?
-    let date: Date
-    
-    static func == (lhs: PaymentDetails, rhs: PaymentDetails) -> Bool {
-        return lhs.id == rhs.id
-    }
-}
-
 struct CheckoutView: View {
-    @EnvironmentObject var cartViewModel: CartViewModel
-    @State var paymentMethod: PaymentMethods = .cash
-    @State var cardNumber: String = ""
-    @State var cardName: String = ""
-    @State var cardCvv: String = ""
-    @State var cardDate: String = ""
-    @State var amount: String = "" {
-        didSet {
-            calculateReturn()
-        }
-    }
-    @State var returnAmount: Double = 0
+    @StateObject var viewModel = CheckoutViewModel()
     @FocusState private var isTextFieldFocused: Bool
+    @Binding var path: NavigationPath
+    @State var sell: Sell
+    @Environment(\.dismiss) var dismiss
     
     var body: some View {
         Form {
             paymentMethodPicker
             
-            switch paymentMethod {
+            switch viewModel.paymentMethod {
             case .cash:
                 paymentSection
             case .card:
                 cardSection
             }
+            
+            clientSection
         }
         .safeAreaInset(edge: .bottom) {
             totalView
         }
+        .disabled(viewModel.isLoading)
         .toolbar {
             if isTextFieldFocused {
                 Button("Done") {
@@ -75,10 +39,21 @@ struct CheckoutView: View {
             }
         }
         .navigationTitle("Pagar")
+        .onAppear {
+            viewModel.load(sell: sell)
+        }
+        .task {
+            await viewModel.fetchClients()
+        }
+        .alert("Venta exitosa!", isPresented: $viewModel.successSell) {
+            Button("Volver al inicio") {
+                path = NavigationPath()
+            }
+        }
     }
     
     var paymentMethodPicker: some View {
-        Picker("Método de pago", selection: $paymentMethod.animation(.bouncy)) {
+        Picker("Método de pago", selection: $viewModel.paymentMethod.animation(.bouncy)) {
             ForEach(PaymentMethods.allCases, id: \.self) { method in
                 Text(method.rawValue)
                     .tag(method)
@@ -86,19 +61,43 @@ struct CheckoutView: View {
         }
     }
     
+    var clientSection: some View {
+        Section("Datos del cliente") {
+            Picker("Cliente", selection: $viewModel.selectedClientID.animation()) {
+                Text("Ninguno")
+                    .tag(-1)
+                ForEach(viewModel.clients, id: \.id) { item in
+                    Text(item.name)
+                        .tag(item.id)
+                }
+            }
+            
+            if let client = viewModel.selectedClient {
+                Text("Nombre: \(client.name)")
+                    .contentTransition(.numericText())
+                Text("Apellido: \(client.lastname)")
+                    .contentTransition(.numericText())
+                Text("Email: \(client.email)")
+                    .contentTransition(.numericText())
+                Text("DNI: \(client.dni)")
+                    .contentTransition(.numericText())
+            }
+        }
+    }
+    
     var cardSection: some View {
         Section("Datos de tarjeta") {
-            TextField("Número", text: $cardNumber)
+            TextField("Número", text: $viewModel.cardNumber)
                 .textContentType(.creditCardNumber)
                 .focused($isTextFieldFocused)
-            TextField("Nombre", text: $cardName)
+            TextField("Nombre", text: $viewModel.cardName)
                 .textContentType(.creditCardName)
                 .focused($isTextFieldFocused)
             HStack {
-                TextField("CVV", text: $cardCvv)
+                TextField("CVV", text: $viewModel.cardCvv)
                     .textContentType(.creditCardSecurityCode)
                     .focused($isTextFieldFocused)
-                TextField("Fecha", text: $cardDate)
+                TextField("Fecha", text: $viewModel.cardDate)
                     .textContentType(.creditCardExpiration)
                     .focused($isTextFieldFocused)
             }
@@ -107,38 +106,28 @@ struct CheckoutView: View {
     
     var paymentSection: some View {
         Section("Datos de pago") {
-            TextField("Monto", text: $amount.animation())
+            TextField("Monto", value: $viewModel.amount.animation(), format: .currency(code: "ARS"))
                 .focused($isTextFieldFocused)
                 .keyboardType(.numberPad)
-            Text("Vuelto: \(returnAmount.formatted())")
+            Text("Vuelto: \(viewModel.returnAmount.formatted(.currency(code: "ARS")))")
         }
     }
     
     var totalView: some View {
         HStack {
             Group {
-                Text("Total: \(cartViewModel.sell.total.formatted())")
+                Text("Total: \((viewModel.sell?.total ?? 0).formatted(.currency(code: "ARS")))")
                     .font(.title2)
                     .foregroundStyle(Color.accentColor)
                 Spacer()
                 Button("Confirmar", systemImage: "chevron.right.circle") {
-                    switch paymentMethod {
-                    case .card:
-                        cartViewModel.updateCardPayment(
-                            number: cardNumber,
-                            name: cardName,
-                            securityCode: cardCvv,
-                            expirationDate: cardDate
-                        )
-                    case .cash:
-                        cartViewModel.updateCashPayment(
-                            amount: amount,
-                            returnAmount: returnAmount
-                        )
+                    Task {
+                        await viewModel.pay()
                     }
                 }
                 .buttonStyle(.borderedProminent)
                 .font(.title3)
+                .disabled(!viewModel.isInputValid)
             }
             .fontWeight(.bold)
         }
@@ -147,20 +136,5 @@ struct CheckoutView: View {
         .clipShape(RoundedRectangle(cornerRadius: 15))
         .shadow(color: .accentColor.opacity(0.2), radius: 25, y: 10)
         .padding()
-    }
-    
-    func calculateReturn() {
-        guard let amount = Double(amount) else {
-            returnAmount = 0
-            return
-        }
-        returnAmount = max(amount - cartViewModel.sell.total, 0)
-    }
-}
-
-#Preview {
-    NavigationStack {
-        CheckoutView()
-            .environmentObject(CartViewModel())
     }
 }

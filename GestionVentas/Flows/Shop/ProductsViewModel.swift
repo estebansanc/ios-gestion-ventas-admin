@@ -48,19 +48,4 @@ class ProductsViewModel: BaseViewModel {
             }
         }
     }
-    
-    @MainActor
-    func fetchDetail() async {
-        guard let productID = selectedProductID else {
-            print("Ningun producto seleccionado")
-            return
-        }
-        
-        await callService {
-            let result: Product = try await HTTPManager.get(path: "/productos/\(productID)")
-            withAnimation {
-                self.selectedProduct = result
-            }
-        }
-    }
 }

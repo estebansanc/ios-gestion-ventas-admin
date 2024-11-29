@@ -7,52 +7,21 @@
 
 import SwiftUI
 
-class ProductDetailViewModel: BaseViewModel {
-    var productID: Int
-    
-    @Published var count: Int = 0
-    @Published var product: Product? = nil
-    
-    var subtotal: Double {
-        guard let product else { return 0 }
-        return Double(count) * product.price
-    }
-    
-    init(productID: Int) {
-        self.productID = productID
-    }
-    
-    @MainActor
-    func fetchDetail() async {
-        await callService {
-            let result: Product = try await HTTPManager.get(path: "/productos/\(productID)")
-            withAnimation {
-                self.product = result
-            }
-        }
-    }
-}
-
 struct ProductDetailView: View {
-    @EnvironmentObject private var viewModel: ProductDetailViewModel
     @EnvironmentObject private var cartViewModel: CartViewModel
+    @StateObject private var viewModel = ProductDetailViewModel()
     @Environment(\.dismiss) private var dismiss
+    @State var productID: Int
     
     var body: some View {
         VStack(alignment: .leading) {
             if let product = viewModel.product {
-                AsyncImage(
-                    url: URL(string: "https://www.paredro.com/wp-content/uploads/2016/05/Prasad-Bhat-03.gif")
-                ) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                } placeholder: {
-                    ProgressView()
-                }
+                Image("service-image")
+                .resizable()
+                .aspectRatio(contentMode: .fill)
                 .frame(height: 200)
-                .clipShape(RoundedRectangle(cornerRadius: 25))
                 .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 25))
                 .padding()
                 
                 Text(product.name)
@@ -95,10 +64,8 @@ struct ProductDetailView: View {
             ProgressView()
                 .opacity(viewModel.isLoading ? 1 : 0)
         )
-        .onAppear {
-            Task {
-                await viewModel.fetchDetail()
-            }
+        .task {
+            await viewModel.fetchDetail(productID: productID)
         }
         .alert("Error", isPresented: .constant(viewModel.error != nil)) {
             Button("Dismiss") {
@@ -113,7 +80,6 @@ struct ProductDetailView: View {
 }
 
 #Preview {
-    ProductDetailView()
-        .environmentObject(ProductDetailViewModel(productID: 1))
+    ProductDetailView(productID: 1)
         .environmentObject(CartViewModel())
 }

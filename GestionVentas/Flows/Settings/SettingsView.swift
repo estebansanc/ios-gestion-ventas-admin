@@ -30,12 +30,7 @@ struct SettingsView: View {
                 }
                 
                 NavigationLink {
-                    List {
-                        NavigationLink("Crear producto") {
-                            AddProductView()
-                        }
-                    }
-                    .navigationTitle("Gestionar Productos")
+                    ServicesView()
                 } label: {
                     Label("Gestionar Productos", systemImage: "shippingbox")
                 }

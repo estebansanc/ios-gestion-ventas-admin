@@ -7,47 +7,21 @@
 
 import SwiftUI
 
-struct Manager: Identifiable, Codable {
+struct Manager: Identifiable, Hashable, Codable {
     let id: Int
     let name: String
-    let apellido: String
+    let lastname: String
     let email: String
-    let direccion: String
+    let dni: String
+    let address: String
     
     enum CodingKeys: String, CodingKey {
         case id = "id_gerente"
         case name = "nombre"
-        case apellido
+        case lastname = "apellido"
         case email
-        case direccion
-    }
-}
-
-class ManagersViewModel: ObservableObject {
-    @Published private(set) var managers: [Manager] = []
-    @Published var errorMessage: String = ""
-    @Published var isLoading: Bool = false
-    
-    @MainActor
-    func fetchManagers() async {
-        isLoading = true
-        
-        do {
-            let result: [Manager] = try await HTTPManager.get(path: "/gerentes")
-            withAnimation {
-                self.managers = result
-            }
-        } catch {
-            debugPrint(error)
-            showError(message: error.localizedDescription)
-        }
-        isLoading = false
-    }
-    
-    @MainActor
-    private func showError(message: String) {
-        print("Error: \(message)")
-        self.errorMessage = message
+        case dni
+        case address = "direccion"
     }
 }
 
@@ -55,59 +29,50 @@ struct ManagersView: View {
     @StateObject private var viewModel = ManagersViewModel()
     
     var body: some View {
-        List {
-            ForEach(viewModel.managers, id: \.id) { manager in
-                VStack(alignment: .leading) {
-                    HStack {
-                        Text(manager.name)
-                        Text(manager.apellido)
+        NavigationStack {
+            List {
+                ForEach(viewModel.managers, id: \.id) { seller in
+                    NavigationLink {
+                        ManagerDetailView(selectedManager: seller)
+                    } label: {
+                        VStack(alignment: .leading) {
+                            HStack {
+                                Text(seller.name)
+                                Text(seller.lastname)
+                            }
+                            .fontWeight(.bold)
+                            Text(seller.email)
+                            Text("\(seller.dni)")
+                        }
                     }
-                    .fontWeight(.bold)
-                    Text(manager.email)
-                    Text(manager.direccion)
                 }
             }
-        }
-        .toolbar {
-            NavigationLink {
-                Form {
-                    Section("Datos del gerente") {
-                        Text("Nombre")
-                        Text("Apellido")
-                        Text("Correo electronico")
-                        Text("Direccion")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink {
+                        ManagerDetailView()
+                    } label: {
+                        Label("Add", systemImage: "plus.circle.fill")
                     }
-                    
-                    Label("Crear", systemImage: "plus.circle")
-                        .frame(height: 56)
-                        .frame(maxWidth: .infinity)
-                        .background(Color.accentColor)
-                        .foregroundStyle(.white)
-                        .fontWeight(.bold)
-                        .clipShape(RoundedRectangle(cornerRadius: 15))
                 }
-                .navigationTitle("Agregar gerente")
-            } label: {
-                Label("Agregar", systemImage: "plus.circle")
             }
-        }
-        .alert(
-            viewModel.errorMessage,
-            isPresented: .init(
-                get: { !viewModel.errorMessage.isEmpty },
-                set: { _ in viewModel.errorMessage = "" }
-            ),
-            actions: {}
-        )
-        .onAppear {
-            Task {
+            .task {
                 await viewModel.fetchManagers()
             }
+            .refreshable {
+                await viewModel.fetchManagers()
+            }
+            .navigationTitle("Manageres")
+            .alert("Error", isPresented: .constant(viewModel.error != nil)) {
+                Button("Dismiss") {
+                    viewModel.error = nil
+                }
+            } message: {
+                if let error = viewModel.error {
+                    Text(error.localizedDescription)
+                }
+            }
         }
-        .refreshable {
-            await viewModel.fetchManagers()
-        }
-        .navigationTitle("Gerentes")
     }
 }
 
