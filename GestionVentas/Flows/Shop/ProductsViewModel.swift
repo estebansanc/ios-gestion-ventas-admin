@@ -30,14 +30,6 @@ struct ProductsResponse: Codable {
 
 class ProductsViewModel: BaseViewModel {
     @Published private(set) var products: [Product] = []
-    @Published var count: Int = 0
-    @Published var selectedProduct: Product? = nil
-    var selectedProductID: Int? = nil
-    
-    var subtotal: Double {
-        guard let selectedProduct else { return 0 }
-        return Double(count) * selectedProduct.price
-    }
     
     @MainActor
     func fetchProducts() async {

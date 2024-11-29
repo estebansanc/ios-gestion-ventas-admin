@@ -57,8 +57,12 @@ class CheckoutViewModel: BaseViewModel {
         guard selectedClientID != -1 else { return false }
         switch paymentMethod {
         case .cash:
-            guard let total = sell?.total else { return false}
-            return amount >= total
+            if discountApplied {
+                return amount >= updatedTotal
+            } else {
+                guard let total = sell?.total else { return false}
+                return amount >= total
+            }
         case .card:
             guard
                 !cardName.isEmpty,
